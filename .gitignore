@@ -1,0 +1,5 @@
+*.cd
+*.vcxproj
+/Debug
+*.user
+*.filters
