@@ -19,7 +19,9 @@ public:
 		return this->arr;
 	}
 	void print();
+	static Matrix multiply(Matrix& A, Matrix& B);
 	Matrix operator * (Matrix& A);
 	Matrix operator+ (Matrix& A);
 	Matrix& operator=(const Matrix& A);
+	bool operator ==(Matrix& A);
 };

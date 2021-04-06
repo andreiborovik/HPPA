@@ -2,6 +2,7 @@
 #include <cfloat>
 #include <stdlib.h>
 #include <iostream>
+#include <immintrin.h>
 using namespace std;
 
 Matrix::Matrix(int rows, int columns)
@@ -61,6 +62,28 @@ void Matrix::print()
 	}
 }
 
+Matrix Matrix::multiply(Matrix& A, Matrix& B)
+{
+	__m256d a, b, c;
+	Matrix C(8, 8);
+	for (int i = 0; i < 8; i++)
+	{
+		for (int j = 0; j < 8; j++)
+		{
+			a = _mm256_set1_pd(A.getArr()[i][j]);
+			for (int k = 0; k < 8; k+=4)
+			{
+				c = _mm256_load_pd(&C.getArr()[i][k]);
+				b = _mm256_load_pd(&B.getArr()[j][k]);
+				c = _mm256_fmadd_pd(a, b, c);
+				_mm256_store_pd(&C.getArr()[i][k], c);
+				//C.arr[i][j] += A.arr[i][k] * this->arr[k][j];
+			}
+		}
+	}
+	return C;
+}
+
 Matrix Matrix::operator*(Matrix& A)
 {
 	Matrix C(A.rows, this->columns);
@@ -117,4 +140,16 @@ Matrix& Matrix::operator=(const Matrix& A)
 		}
 	}
 	return *this;
+}
+
+bool Matrix::operator==(Matrix& A)
+{
+	for (int i = 0; i < A.rows; i++)
+	{
+		for (int j = 0; j < A.columns; j++)
+		{
+			if (this->arr[i][j] != A.getArr()[i][j]) return false;
+		}
+	}
+	return true;
 }

@@ -52,5 +52,44 @@ int main()
 			}
 		}
 	}
+
+	Matrix** D = new Matrix * [L];
+	for (int i = 0; i < L; i++)
+	{
+		D[i] = new Matrix[N];
+		for (int j = 0; j < N; j++)
+		{
+			Matrix c(8, 8);
+			D[i][j] = c;
+		}
+	}
+	for (int i = 0; i < L; i++)
+	{
+		for (int j = 0; j < N; j++)
+		{
+			for (int k = 0; k < M; k++)
+			{
+				Matrix result = Matrix::multiply(A[i][k], B[k][j]);
+				D[i][k] = result + D[i][k];
+			}
+		}
+	}
+	bool flag;
+	for (int i = 0; i < L; i++)
+	{
+		for (int j = 0; j < N; j++)
+		{
+
+			if (C[i][j] == D[i][j]) flag = true;
+			else
+			{
+				flag = false;
+				break;
+			}
+
+		}
+		if (!flag) break;
+	}
+	if (flag) cout << "Good";
 	return 0;
 }
