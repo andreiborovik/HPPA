@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <immintrin.h>
+#include <random>
 using namespace std;
 
 Matrix::Matrix(int rows, int columns)
@@ -42,11 +43,17 @@ Matrix::~Matrix()
 
 void Matrix::init()
 {
+	int k = 2;
 	for (int i = 0; i < rows; i++)
 	{
+		//if (i % 2 == 0) k = 1;
 		for (int j = 0; j < columns; j++)
 		{
-			arr[i][j] = (double)rand()/RAND_MAX * 100.;
+			random_device rd;
+			default_random_engine eng(rd());
+			uniform_real_distribution<double> distr(1, 10);
+			arr[i][j] = distr(eng);
+			//k++;
 		}
 	}
 }
@@ -57,7 +64,20 @@ void Matrix::print()
 	{
 		for (int j = 0; j < columns; j++)
 		{
-			cout << arr[i][j] << endl;
+			cout << arr[i][j] << " ";
+		}
+		cout << endl;
+	}
+}
+
+void Matrix::add(Matrix& m)
+{
+	auto data1 = m.getArr();
+	for (int i = 0; i < 8; ++i) {
+		auto row1 = data1[i];
+#pragma loop(no_vector) 
+		for (int j = 0; j < 8; ++j) {
+			arr[i][j] += row1[j];
 		}
 	}
 }
@@ -70,13 +90,13 @@ Matrix Matrix::multiply(Matrix& A, Matrix& B)
 	{
 		for (int j = 0; j < 8; j++)
 		{
-			a = _mm256_set1_pd(A.getArr()[i][j]);
+			a = _mm256_set1_pd(A.arr[i][j]);
 			for (int k = 0; k < 8; k+=4)
 			{
-				c = _mm256_load_pd(&C.getArr()[i][k]);
-				b = _mm256_load_pd(&B.getArr()[j][k]);
+				c = _mm256_load_pd(&C.arr[i][k]);
+				b = _mm256_load_pd(&B.arr[j][k]);
 				c = _mm256_fmadd_pd(a, b, c);
-				_mm256_store_pd(&C.getArr()[i][k], c);
+				_mm256_store_pd(&C.arr[i][k], c);
 				//C.arr[i][j] += A.arr[i][k] * this->arr[k][j];
 			}
 		}
@@ -86,15 +106,20 @@ Matrix Matrix::multiply(Matrix& A, Matrix& B)
 
 Matrix Matrix::operator*(Matrix& A)
 {
-	Matrix C(A.rows, this->columns);
-	for (int i = 0; i < A.rows; i++)
+	Matrix C(8, 8);
+	for (int i = 0; i < 8; ++i)
 	{
-		for (int j = 0; j < this->columns; j++)
+		for (int j = 0; j < 8; ++j)
 		{
-			for (int k = 0; k < A.columns; k++)
-			{
-				C.arr[i][j] += A.arr[i][k] * this->arr[k][j];
-			}
+			
+				C.arr[i][j] += A.arr[i][0] * this->arr[0][j]
+					+ A.arr[i][1] * this->arr[1][j]
+					+ A.arr[i][2] * this->arr[2][j]
+					+ A.arr[i][3] * this->arr[3][j]
+					+ A.arr[i][4] * this->arr[4][j]
+					+ A.arr[i][5] * this->arr[5][j]
+					+ A.arr[i][6] * this->arr[6][j]
+					+ A.arr[i][7] * this->arr[7][j];
 		}
 	}
 	return C;
@@ -148,7 +173,7 @@ bool Matrix::operator==(Matrix& A)
 	{
 		for (int j = 0; j < A.columns; j++)
 		{
-			if (this->arr[i][j] != A.getArr()[i][j]) return false;
+			if ((this->arr[i][j] - A.arr[i][j]) > 0.1) return false;
 		}
 	}
 	return true;

@@ -19,6 +19,7 @@ public:
 		return this->arr;
 	}
 	void print();
+	void add(Matrix& m);
 	static Matrix multiply(Matrix& A, Matrix& B);
 	Matrix operator * (Matrix& A);
 	Matrix operator+ (Matrix& A);

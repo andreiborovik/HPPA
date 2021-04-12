@@ -18,7 +18,7 @@ int main()
 		}
 	}
 
-	Matrix** B = new Matrix * [M];
+	Matrix** B = new Matrix* [M];
 	for (int i = 0; i < M; i++)
 	{
 		B[i] = new Matrix[N];
@@ -40,15 +40,31 @@ int main()
 			C[i][j] = c;
 		}
 	}
-//#pragma loop( no_vector )
 	for (int i = 0; i < L; i++)
 	{
 		for (int j = 0; j < N; j++)
 		{
 			for (int k = 0; k < M; k++)
 			{
-				Matrix result = A[i][k] * B[k][j];
-				C[i][k] = result + C[i][k];
+				for (int l = 0; l < 8; l++)
+				{
+					for (int n = 0; n < 8; n++)
+					{
+						C[i][j].getArr()[l][n] +=
+							A[i][k].getArr()[l][0] * B[k][j].getArr()[0][n] +
+							A[i][k].getArr()[l][1] * B[k][j].getArr()[1][n] +
+							A[i][k].getArr()[l][2] * B[k][j].getArr()[2][n] +
+							A[i][k].getArr()[l][3] * B[k][j].getArr()[3][n] +
+							A[i][k].getArr()[l][4] * B[k][j].getArr()[4][n] +
+							A[i][k].getArr()[l][5] * B[k][j].getArr()[5][n] +
+							A[i][k].getArr()[l][6] * B[k][j].getArr()[6][n] +
+							A[i][k].getArr()[l][7] * B[k][j].getArr()[7][n];
+					}
+				}
+
+
+				/*Matrix result = A[i][k] * B[k][j];
+				C[i][j] = result + C[i][j];*/
 			}
 		}
 	}
@@ -65,11 +81,11 @@ int main()
 	}
 	for (int i = 0; i < L; i++)
 	{
-		for (int j = 0; j < N; j++)
+		for (int j = 0; j < M; j++)
 		{
-			for (int k = 0; k < M; k++)
+			for (int k = 0; k < N; k++)
 			{
-				Matrix result = Matrix::multiply(A[i][k], B[k][j]);
+				Matrix result = Matrix::multiply(A[i][j], B[j][k]);
 				D[i][k] = result + D[i][k];
 			}
 		}
@@ -91,5 +107,6 @@ int main()
 		if (!flag) break;
 	}
 	if (flag) cout << "Good";
+	else cout << "Bad";
 	return 0;
 }
