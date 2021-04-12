@@ -7,7 +7,7 @@ using namespace std;
 using namespace std::chrono;
 
 int L = 300;
-int M = 200;
+int M = 400;
 int N = 300;
 
 double**** init(int rows, int columns, bool flag)
@@ -67,7 +67,34 @@ void my_multiply(double**** A, double**** B, double**** C)
 		}
 	}
 }
-
+void my_multiply_without_optimization(double**** A, double**** B, double**** C)
+{
+	for (int i = 0; i < L; i++)
+	{
+		for (int j = 0; j < N; j++)
+		{
+			for (int k = 0; k < M; k++)
+			{
+				for (int l = 0; l < 8; l++)
+				{
+#pragma loop(no_vector)
+					for (int n = 0; n < 8; n++)
+					{
+						C[i][j][l][n] +=
+							A[i][k][l][0] * B[k][j][0][n] +
+							A[i][k][l][1] * B[k][j][1][n] +
+							A[i][k][l][2] * B[k][j][2][n] +
+							A[i][k][l][3] * B[k][j][3][n] +
+							A[i][k][l][4] * B[k][j][4][n] +
+							A[i][k][l][5] * B[k][j][5][n] +
+							A[i][k][l][6] * B[k][j][6][n] +
+							A[i][k][l][7] * B[k][j][7][n];
+					}
+				}
+			}
+		}
+	}
+}
 
 void multiply(double** a, double** b, double** c)
 {
@@ -117,15 +144,24 @@ int main()
 	double**** B;
 	double**** C;
 	double**** D;
+	double**** E;
 
 	A = init(L, M, true);
 	B = init(M, N, true);
 	C = init(L, N, false);
 	D = init(L, N, false);
+	E = init(L, N, false);
 
 	cout << "С автоматической векторизацией ";
 	t1 = high_resolution_clock::now();
 	my_multiply(A, B, C);
+	t2 = high_resolution_clock::now();
+	time_span = duration_cast<duration<double>>(t2 - t1);
+	cout << time_span.count() << endl;
+
+	cout << "Без векторизацией ";
+	t1 = high_resolution_clock::now();
+	my_multiply_without_optimization(A, B, E);
 	t2 = high_resolution_clock::now();
 	time_span = duration_cast<duration<double>>(t2 - t1);
 	cout << time_span.count() << endl;
@@ -145,7 +181,9 @@ int main()
 
 	if (my_equal(C,D)) cout << "Good";
 	else cout << "Bad";
-
-
+	if (my_equal(C, E)) cout << "Good";
+	else cout << "Bad";
+	if (my_equal(E, D)) cout << "Good";
+	else cout << "Bad";
 	return 0;
 }
