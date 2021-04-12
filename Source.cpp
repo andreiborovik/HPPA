@@ -1,11 +1,17 @@
 #include <iostream>
 #include "Matrix.h"
+#include <chrono>
+#include <ctime>
+using namespace std::chrono;
 using namespace std;
 int main()
 {
-	int L = 1;
-	int M = 2;
-	int N = 3;
+	int L = 300;
+	int M = 200;
+	int N = 300;
+	setlocale(LC_ALL, "Russian");
+	high_resolution_clock::time_point t1, t2;
+	duration<double> time_span;
 	Matrix** A = new Matrix* [L];
 	for (int i = 0; i < L; i++)
 	{
@@ -40,6 +46,8 @@ int main()
 			C[i][j] = c;
 		}
 	}
+	cout << "С автоматической векторизацией ";
+	t1 = high_resolution_clock::now();
 	for (int i = 0; i < L; i++)
 	{
 		for (int j = 0; j < N; j++)
@@ -68,6 +76,9 @@ int main()
 			}
 		}
 	}
+	t2 = high_resolution_clock::now();
+	time_span = duration_cast<duration<double>>(t2 - t1);
+	cout << time_span.count() << endl;
 
 	Matrix** D = new Matrix * [L];
 	for (int i = 0; i < L; i++)
@@ -79,6 +90,7 @@ int main()
 			D[i][j] = c;
 		}
 	}
+	cout << "С ручной векторизацией ";
 	for (int i = 0; i < L; i++)
 	{
 		for (int j = 0; j < M; j++)
@@ -90,6 +102,9 @@ int main()
 			}
 		}
 	}
+	t2 = high_resolution_clock::now();
+	time_span = duration_cast<duration<double>>(t2 - t1);
+	cout << time_span.count() << endl;
 	bool flag;
 	for (int i = 0; i < L; i++)
 	{
