@@ -18,9 +18,14 @@ public:
 	{
 		return this->arr;
 	}
+	double** getData() 
+	{
+		return this->arr;
+	}
 	void print();
 	void add(Matrix& m);
-	static Matrix multiply(Matrix& A, Matrix& B);
+	//static Matrix multiply(Matrix& A, Matrix& B);
+	static void multiply(double** a, double** b, double** c);
 	Matrix operator * (Matrix& A);
 	Matrix operator+ (Matrix& A);
 	Matrix& operator=(const Matrix& A);

@@ -23,10 +23,11 @@ Matrix::Matrix(int rows, int columns)
 Matrix::Matrix(const Matrix& A) {
 	this->columns = A.columns;
 	this->rows = A.rows;
-	arr = new double* [A.rows];
-	for (int i = 0; i < A.rows; i++) {
-		arr[i] = new double[A.columns];
-		for (int j = 0; j < A.columns; j++) {
+	arr = new double* [rows];
+	for (int i = 0; i < rows; i++) {
+		arr[i] = new double[columns];
+		for (int j = 0; j < columns; j++) {
+			arr[i][j] = 0;
 			arr[i][j] = A.getArr()[i][j];
 		}
 	}
@@ -82,27 +83,27 @@ void Matrix::add(Matrix& m)
 	}
 }
 
-Matrix Matrix::multiply(Matrix& A, Matrix& B)
-{
-	__m256d a, b, c;
-	Matrix C(8, 8);
-	for (int i = 0; i < 8; i++)
-	{
-		for (int j = 0; j < 8; j++)
-		{
-			a = _mm256_set1_pd(A.arr[i][j]);
-			for (int k = 0; k < 8; k+=4)
-			{
-				c = _mm256_load_pd(&C.arr[i][k]);
-				b = _mm256_load_pd(&B.arr[j][k]);
-				c = _mm256_fmadd_pd(a, b, c);
-				_mm256_store_pd(&C.arr[i][k], c);
-				//C.arr[i][j] += A.arr[i][k] * this->arr[k][j];
-			}
-		}
-	}
-	return C;
-}
+//void Matrix::multiply(double** a, double** b, double** c)
+//{
+//	__m256d a1, b1, c1;
+//	Matrix C(8, 8);
+//	for (int i = 0; i < 8; i++)
+//	{
+//		for (int j = 0; j < 8; j++)
+//		{
+//			a1 = _mm256_set1_pd(a[i][j]);
+//			for (int k = 0; k < 8; k+=4)
+//			{
+//				c1 = _mm256_load_pd(&c[i][k]);
+//				b1 = _mm256_load_pd(&b[j][k]);
+//				c1 = _mm256_fmadd_pd(a1, b1, c1);
+//				_mm256_store_pd(&c[i][k], c1);
+//				//C.arr[i][j] += A.arr[i][k] * this->arr[k][j];
+//			}
+//		}
+//	}
+//	//return C;
+//}
 
 Matrix Matrix::operator*(Matrix& A)
 {

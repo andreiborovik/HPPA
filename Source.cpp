@@ -2,11 +2,37 @@
 #include "Matrix.h"
 #include <chrono>
 #include <ctime>
+#include <cfloat>
+#include <stdlib.h>
+#include <immintrin.h>
+#include <random>
 using namespace std::chrono;
 using namespace std;
+
+static void multiply(double** a, double** b, double** c)
+{
+	__m256d a1, b1, c1;
+	Matrix C(8, 8);
+	for (int i = 0; i < 8; i++)
+	{
+		for (int j = 0; j < 8; j++)
+		{
+			a1 = _mm256_set1_pd(a[i][j]);
+			for (int k = 0; k < 8; k += 4)
+			{
+				c1 = _mm256_load_pd(&c[i][k]);
+				b1 = _mm256_load_pd(&b[j][k]);
+				c1 = _mm256_fmadd_pd(a1, b1, c1);
+				_mm256_store_pd(&c[i][k], c1);
+				//C.arr[i][j] += A.arr[i][k] * this->arr[k][j];
+			}
+		}
+	}
+	//return C;
+}
 int main()
 {
-	int L = 300;
+	int L = 100;
 	int M = 200;
 	int N = 300;
 	setlocale(LC_ALL, "Russian");
@@ -91,7 +117,14 @@ int main()
 		}
 	}
 	cout << "С ручной векторизацией ";
-	for (int i = 0; i < L; i++)
+	for (unsigned i = 0; i < L; i++) {
+		for (unsigned j = 0; j < N; j++) {
+			for (int k = 0; k < M; k++) {
+				multiply(A[i][j].getArr(), B[j][k].getArr(), C[i][k].getArr());
+			}
+		}
+	}
+	/*for (int i = 0; i < L; i++)
 	{
 		for (int j = 0; j < M; j++)
 		{
@@ -101,7 +134,7 @@ int main()
 				D[i][k] = result + D[i][k];
 			}
 		}
-	}
+	}*/
 	t2 = high_resolution_clock::now();
 	time_span = duration_cast<duration<double>>(t2 - t1);
 	cout << time_span.count() << endl;
@@ -124,4 +157,5 @@ int main()
 	if (flag) cout << "Good";
 	else cout << "Bad";
 	return 0;
+
 }
