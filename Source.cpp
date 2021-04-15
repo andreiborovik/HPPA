@@ -1,18 +1,104 @@
 #include <iostream>
-#include "Matrix.h"
+#include <random>
 #include <chrono>
 #include <ctime>
-#include <cfloat>
-#include <stdlib.h>
 #include <immintrin.h>
-#include <random>
-using namespace std::chrono;
 using namespace std;
+using namespace std::chrono;
 
-static void multiply(double** a, double** b, double** c)
+int L = 300;
+int M = 400;
+int N = 300;
+
+int BLOCK_HEIGHT = 4;
+int BLOCK_WIDTH = 4;
+
+double**** init(int rows, int columns, bool flag)
+{
+	double**** ptr;
+	ptr = new double***[rows];
+	for (int i = 0; i < rows; i++)
+	{
+		ptr[i] = new double** [columns];
+		for (int j = 0; j < columns; j++)
+		{
+			ptr[i][j] = new double* [8];
+				for (int k = 0; k < 8; k++)
+				{
+					ptr[i][j][k] = new double[8];
+					for (int m = 0; m < 8; m++)
+					{
+						if (flag)
+						{
+							random_device rd;
+							default_random_engine eng(rd());
+							uniform_real_distribution<double> distr(1, 10);
+							ptr[i][j][k][m] = distr(eng);
+						}
+						else ptr[i][j][k][m] = 0;
+					}
+				}
+
+		}
+	}
+	return ptr;
+}
+void my_multiply(double**** __restrict A, double**** __restrict B, double**** __restrict C)
+{
+	for (int i = 0; i < L; i++)
+	{
+		for (int j = 0; j < N; j++)
+		{
+			for (int k = 0; k < M; k++)
+			{
+				for (int l = 0; l < 8; l++)
+				{
+					for (int h = 0; h < 8; h++)
+					{
+						for (int n = 0; n < 8; n++)
+						{
+							C[i][j][l][n] +=
+								A[i][k][l][h] * B[k][j][h][n];
+						}
+					}
+					
+				}
+			}
+		}
+	}
+}
+void my_multiply_without_optimization(double**** A, double**** B, double**** C)
+{
+	for (int i = 0; i < L; i++)
+	{
+		for (int j = 0; j < N; j++)
+		{
+			for (int k = 0; k < M; k++)
+			{
+				for (int l = 0; l < 8; l++)
+				{
+#pragma loop(no_vector)
+					for (int n = 0; n < 8; n++)
+					{
+						C[i][j][l][n] +=
+							A[i][k][l][0] * B[k][j][0][n] +
+							A[i][k][l][1] * B[k][j][1][n] +
+							A[i][k][l][2] * B[k][j][2][n] +
+							A[i][k][l][3] * B[k][j][3][n] +
+							A[i][k][l][4] * B[k][j][4][n] +
+							A[i][k][l][5] * B[k][j][5][n] +
+							A[i][k][l][6] * B[k][j][6][n] +
+							A[i][k][l][7] * B[k][j][7][n];
+					}
+				}
+			}
+		}
+	}
+}
+
+void multiply(double** a, double** b, double** c)
 {
 	__m256d a1, b1, c1;
-	Matrix C(8, 8);
 	for (int i = 0; i < 8; i++)
 	{
 		for (int j = 0; j < 8; j++)
@@ -24,56 +110,32 @@ static void multiply(double** a, double** b, double** c)
 				b1 = _mm256_load_pd(&b[j][k]);
 				c1 = _mm256_fmadd_pd(a1, b1, c1);
 				_mm256_store_pd(&c[i][k], c1);
-				//C.arr[i][j] += A.arr[i][k] * this->arr[k][j];
 			}
 		}
 	}
-	//return C;
 }
-int main()
+
+bool my_equal(double**** A, double**** B)
 {
-	int L = 100;
-	int M = 200;
-	int N = 300;
-	setlocale(LC_ALL, "Russian");
-	high_resolution_clock::time_point t1, t2;
-	duration<double> time_span;
-	Matrix** A = new Matrix* [L];
 	for (int i = 0; i < L; i++)
 	{
-		A[i] = new Matrix[M];
-		for (int j = 0; j < M; j++)
-		{
-			Matrix a(8, 8);
-			a.init();
-			A[i][j] = a;
-		}
-	}
-
-	Matrix** B = new Matrix* [M];
-	for (int i = 0; i < M; i++)
-	{
-		B[i] = new Matrix[N];
 		for (int j = 0; j < N; j++)
 		{
-			Matrix b(8, 8);
-			b.init();
-			B[i][j] = b;
+			for (int k = 0; k < 8; k++)
+			{
+				for (int m = 0; m < 8; m++)
+				{
+					if ((A[i][j][k][m] - B[i][j][k][m]) > 0.1) return false;
+				}
+			}
+			
 		}
 	}
+	return true;
+}
 
-	Matrix** C = new Matrix * [L];
-	for (int i = 0; i < L; i++)
-	{
-		C[i] = new Matrix[N];
-		for (int j = 0; j < N; j++)
-		{
-			Matrix c(8, 8);
-			C[i][j] = c;
-		}
-	}
-	cout << "С автоматической векторизацией ";
-	t1 = high_resolution_clock::now();
+void f(double**** A, double**** B, double**** C)
+{
 	for (int i = 0; i < L; i++)
 	{
 		for (int j = 0; j < N; j++)
@@ -82,80 +144,105 @@ int main()
 			{
 				for (int l = 0; l < 8; l++)
 				{
+					auto result_row = A[i][j][l];
+					auto data = B[j][k][l];
 					for (int n = 0; n < 8; n++)
 					{
-						C[i][j].getArr()[l][n] +=
-							A[i][k].getArr()[l][0] * B[k][j].getArr()[0][n] +
-							A[i][k].getArr()[l][1] * B[k][j].getArr()[1][n] +
-							A[i][k].getArr()[l][2] * B[k][j].getArr()[2][n] +
-							A[i][k].getArr()[l][3] * B[k][j].getArr()[3][n] +
-							A[i][k].getArr()[l][4] * B[k][j].getArr()[4][n] +
-							A[i][k].getArr()[l][5] * B[k][j].getArr()[5][n] +
-							A[i][k].getArr()[l][6] * B[k][j].getArr()[6][n] +
-							A[i][k].getArr()[l][7] * B[k][j].getArr()[7][n];
+						C[i][j][l][n] +=
+							A[i][k][l][0] * B[k][j][0][n] +
+							A[i][k][l][1] * B[k][j][1][n] +
+							A[i][k][l][2] * B[k][j][2][n] +
+							A[i][k][l][3] * B[k][j][3][n] +
+							A[i][k][l][4] * B[k][j][4][n] +
+							A[i][k][l][5] * B[k][j][5][n] +
+							A[i][k][l][6] * B[k][j][6][n] +
+							A[i][k][l][7] * B[k][j][7][n];
 					}
 				}
-
-
-				/*Matrix result = A[i][k] * B[k][j];
-				C[i][j] = result + C[i][j];*/
 			}
 		}
 	}
+}
+
+void block(double**** a, double**** b, double**** c)
+{
+	for (int block1Height = 0; block1Height < L / BLOCK_HEIGHT; ++block1Height) {
+		for (int block1 = 0; block1 < M / BLOCK_WIDTH; ++block1) {
+			for (int block2 = 0; block2 < N / BLOCK_WIDTH; ++block2) {
+				for (int row = block1Height * BLOCK_HEIGHT; row < (block1Height + 1) * BLOCK_HEIGHT; ++row) {
+					for (int i = block1 * BLOCK_WIDTH; i < (block1 + 1) * BLOCK_WIDTH; ++i) {
+						for (int column = block2 * BLOCK_WIDTH; column < (block2 + 1) * BLOCK_WIDTH; ++column) {
+							multiply(a[row][i], b[i][column], c[row][column]);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+int main()
+{
+	setlocale(LC_ALL, "Russian");
+	high_resolution_clock::time_point t1, t2;
+	duration<double> time_span;
+
+	double**** A;
+	double**** B;
+	double**** C;
+	double**** D;
+	double**** E;
+	double**** F;
+
+	A = init(L, M, true);
+	B = init(M, N, true);
+	C = init(L, N, false);
+	D = init(L, N, false);
+	E = init(L, N, false);
+	F = init(L, N, false);
+
+	cout << "С автоматической векторизацией ";
+	t1 = high_resolution_clock::now();
+	my_multiply(A, B, C);
 	t2 = high_resolution_clock::now();
 	time_span = duration_cast<duration<double>>(t2 - t1);
 	cout << time_span.count() << endl;
 
-	Matrix** D = new Matrix * [L];
-	for (int i = 0; i < L; i++)
-	{
-		D[i] = new Matrix[N];
-		for (int j = 0; j < N; j++)
-		{
-			Matrix c(8, 8);
-			D[i][j] = c;
-		}
-	}
+	cout << "Без векторизацией ";
+	t1 = high_resolution_clock::now();
+	my_multiply_without_optimization(A, B, E);
+	t2 = high_resolution_clock::now();
+	time_span = duration_cast<duration<double>>(t2 - t1);
+	cout << time_span.count() << endl;
+
 	cout << "С ручной векторизацией ";
-	for (unsigned i = 0; i < L; i++) {
-		for (unsigned j = 0; j < N; j++) {
+	t1 = high_resolution_clock::now();
+	for (int i = 0; i < L; i++) {
+		for (int j = 0; j < N; j++) {
 			for (int k = 0; k < M; k++) {
-				multiply(A[i][j].getArr(), B[j][k].getArr(), C[i][k].getArr());
+				multiply(A[i][k], B[k][j], D[i][j]);
 			}
 		}
 	}
-	/*for (int i = 0; i < L; i++)
-	{
-		for (int j = 0; j < M; j++)
-		{
-			for (int k = 0; k < N; k++)
-			{
-				Matrix result = Matrix::multiply(A[i][j], B[j][k]);
-				D[i][k] = result + D[i][k];
-			}
-		}
-	}*/
 	t2 = high_resolution_clock::now();
 	time_span = duration_cast<duration<double>>(t2 - t1);
 	cout << time_span.count() << endl;
-	bool flag;
-	for (int i = 0; i < L; i++)
-	{
-		for (int j = 0; j < N; j++)
-		{
 
-			if (C[i][j] == D[i][j]) flag = true;
-			else
-			{
-				flag = false;
-				break;
-			}
+	cout << "Блочное перемножение ";
+	t1 = high_resolution_clock::now();
+	block(A, B, F);
+	t2 = high_resolution_clock::now();
+	time_span = duration_cast<duration<double>>(t2 - t1);
+	cout << time_span.count() << endl;
+	
 
-		}
-		if (!flag) break;
-	}
-	if (flag) cout << "Good";
+	if (my_equal(C,D)) cout << "Good";
+	else cout << "Bad";
+	if (my_equal(C, E)) cout << "Good";
+	else cout << "Bad";
+	if (my_equal(E, D)) cout << "Good";
+	else cout << "Bad";
+	if (my_equal(C, F)) cout << "Good";
 	else cout << "Bad";
 	return 0;
-
 }
